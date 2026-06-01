@@ -33,9 +33,9 @@ flask_app = Flask(__name__, template_folder=template_dir)
 _cache = {"data": None, "fetched_at": None}
 _lock = _threading.Lock()
 
-def refresh_cache(hours=120):
+def refresh_cache(days=30):
     with _lock:
-        _cache["data"] = collect_data(hours)
+        _cache["data"] = collect_data(days=days)
         _cache["fetched_at"] = datetime.now().isoformat()
 
 @flask_app.route("/")

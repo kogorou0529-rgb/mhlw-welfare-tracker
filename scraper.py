@@ -212,6 +212,8 @@ def parse_japanese_date(text: str) -> datetime | None:
 def scrape_mhlw_news(soup: BeautifulSoup, base_url: str, cutoff: datetime) -> list[dict]:
     items = []
     links = soup.find_all("a", href=True)
+    now = datetime.now()
+
     for link in links:
         title = link.get_text(strip=True)
         if not title or len(title) < 5:
@@ -225,19 +227,30 @@ def scrape_mhlw_news(soup: BeautifulSoup, base_url: str, cutoff: datetime) -> li
         elif not href.startswith("http"):
             continue
 
-        # Date detection: look at parent/sibling elements
+        # 親要素から日付テキストを探す（最大5階層）
         date_text = ""
         parent = link.parent
-        for _ in range(4):
+        for _ in range(5):
             if parent is None:
                 break
-            date_text = parent.get_text()
-            if re.search(r"\d{4}年|\d{4}/\d{1,2}/|\d{4}-\d{1,2}-", date_text):
+            text = parent.get_text()
+            if re.search(r"(\d{4}年|\d{4}/\d{1,2}/|\d{4}-\d{1,2}-|令和\d+年)", text):
+                date_text = text
                 break
             parent = parent.parent
 
         dt = parse_japanese_date(date_text)
-        if dt and dt < cutoff:
+
+        # 日付が検出できない場合はスキップ（古い情報混入を防ぐ）
+        if dt is None:
+            continue
+
+        # カットオフより古い情報はスキップ
+        if dt < cutoff:
+            continue
+
+        # 未来の日付もスキップ
+        if dt > now:
             continue
 
         theme = detect_theme(title)
@@ -246,7 +259,7 @@ def scrape_mhlw_news(soup: BeautifulSoup, base_url: str, cutoff: datetime) -> li
         items.append({
             "title": title[:150],
             "url": href,
-            "date": dt.strftime("%Y-%m-%d") if dt else datetime.now().strftime("%Y-%m-%d"),
+            "date": dt.strftime("%Y-%m-%d"),
             "source": base_url.split("/")[2],
             "summary": f"{title}に関する情報です。詳細はリンク先をご確認ください。",
             "theme": theme,
@@ -257,8 +270,10 @@ def scrape_mhlw_news(soup: BeautifulSoup, base_url: str, cutoff: datetime) -> li
     return items
 
 
-def collect_data(hours: int = 120) -> dict:
-    cutoff = datetime.now() - timedelta(hours=hours)
+def collect_data(days: int = 30) -> dict:
+    """過去 days 日以内の障害者福祉情報を収集する"""
+    now = datetime.now()
+    cutoff = now - timedelta(days=days)
     all_items = []
     seen_urls = set()
     live_fetch_failed = True
@@ -280,12 +295,22 @@ def collect_data(hours: int = 120) -> dict:
     if live_fetch_failed or len(all_items) < 3:
         logger.info("Using fallback data (live scrape returned insufficient results)")
         for item in FALLBACK_DATA:
+            # フォールバックデータも30日以内のものだけ
+            try:
+                item_date = datetime.strptime(item["date"], "%Y-%m-%d")
+                if item_date < cutoff:
+                    continue
+            except Exception:
+                pass
             if item["url"] not in seen_urls:
                 seen_urls.add(item["url"])
                 all_items.append(item)
 
+    # 並び順：優先度（高い順）→ 日付（新しい順）
     priority_order = {"緊急": 0, "高": 1, "中": 2, "低": 3}
-    all_items.sort(key=lambda x: (priority_order.get(x["priority"], 4), x["date"]), reverse=False)
+    # まず日付の新しい順でソート
+    all_items.sort(key=lambda x: x["date"], reverse=True)
+    # 次に優先度でステーブルソート（優先度内では日付順が保たれる）
     all_items.sort(key=lambda x: priority_order.get(x["priority"], 4))
 
     theme_counts = {}
@@ -304,12 +329,20 @@ def collect_data(hours: int = 120) -> dict:
 
     recommendations = generate_recommendations(all_items, priority_counts, theme_counts)
 
+    # 表示用の日付範囲テキスト
+    from_date_str = f"{cutoff.year}年{cutoff.month}月{cutoff.day}日"
+    to_date_str   = f"{now.year}年{now.month}月{now.day}日"
+    date_range_str = f"{from_date_str} 〜 {to_date_str}"
+
     return {
         "items": all_items,
         "total": len(all_items),
-        "collected_at": datetime.now().isoformat(),
+        "collected_at": now.isoformat(),
         "cutoff": cutoff.isoformat(),
-        "hours": hours,
+        "days": days,
+        "date_range": date_range_str,
+        "from_date": from_date_str,
+        "to_date": to_date_str,
         "theme_counts": theme_counts,
         "priority_counts": priority_counts,
         "date_counts": dict(sorted(date_counts.items())),

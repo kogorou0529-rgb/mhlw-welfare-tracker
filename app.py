@@ -13,9 +13,9 @@ _cache = {"data": None, "fetched_at": None}
 _lock = threading.Lock()
 
 
-def refresh_cache(hours: int = 120):
+def refresh_cache(days: int = 30):
     with _lock:
-        _cache["data"] = collect_data(hours)
+        _cache["data"] = collect_data(days=days)
         _cache["fetched_at"] = datetime.now().isoformat()
 
 

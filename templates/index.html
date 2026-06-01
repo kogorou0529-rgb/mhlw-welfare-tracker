@@ -467,9 +467,9 @@
         <div class="brand-tag"><i class="bi bi-building me-1"></i>株式会社モーリス — 情報収集システム</div>
         <div class="app-title"><i class="bi bi-shield-check me-2"></i>厚生労働省 障害者福祉 情報トラッカー</div>
         <div class="app-subtitle">
-          過去 <strong style="color:var(--neon-cyan);">120時間</strong> 以内に更新された障害者福祉関連情報を収集・分析
+          収集期間：<strong style="color:var(--neon-cyan);">{{ data.date_range }}</strong>
           <span class="time-badge ms-2">
-            <i class="bi bi-clock me-1"></i>{{ data.collected_at[:16].replace('T', ' ') }}
+            <i class="bi bi-clock me-1"></i>最終取得: {{ data.collected_at[:16].replace('T', ' ') }}
           </span>
         </div>
       </div>
@@ -640,7 +640,8 @@
                 <div class="info-title">{{ item.title }}</div>
                 <div class="info-summary">{{ item.summary }}</div>
                 <div class="info-meta">
-                  <i class="bi bi-calendar3 me-1"></i>{{ item.date }}
+                  <i class="bi bi-calendar3 me-1"></i>
+                  <strong style="color:var(--neon-cyan); opacity:0.85;">{{ item.date }}</strong>
                   &nbsp;·&nbsp;
                   <i class="bi bi-folder me-1"></i>{{ item.source }}
                 </div>
