@@ -8,269 +8,454 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" />
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
   <style>
+    @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700;900&display=swap');
+
     :root {
-      --morris-blue: #1a3a5c;
-      --morris-accent: #2196f3;
-      --morris-light: #e8f4fd;
-      --urgent-color: #dc3545;
-      --high-color: #fd7e14;
-      --mid-color: #0d6efd;
-      --low-color: #6c757d;
+      --bg-primary: #050b18;
+      --bg-secondary: #0a1628;
+      --bg-card: rgba(10, 22, 40, 0.85);
+      --neon-cyan: #00e5ff;
+      --neon-blue: #2979ff;
+      --neon-purple: #7c4dff;
+      --neon-green: #00e676;
+      --neon-orange: #ff6d00;
+      --neon-red: #ff1744;
+      --text-primary: #e8f4fd;
+      --text-secondary: #7ba3c8;
+      --border-glow: rgba(0, 229, 255, 0.25);
+      --urgent: #ff1744;
+      --high: #ff6d00;
+      --mid: #2979ff;
+      --low: #546e7a;
     }
 
+    * { box-sizing: border-box; }
+
     body {
-      background: #f0f4f8;
-      font-family: "Noto Sans JP", "Hiragino Kaku Gothic ProN", "Yu Gothic", sans-serif;
-      color: #2c3e50;
+      background: var(--bg-primary);
+      font-family: 'Noto Sans JP', 'Hiragino Kaku Gothic ProN', sans-serif;
+      color: var(--text-primary);
+      min-height: 100vh;
+      overflow-x: hidden;
     }
+
+    /* ── 背景アニメーション ── */
+    body::before {
+      content: '';
+      position: fixed;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      background: radial-gradient(ellipse at 20% 20%, rgba(41, 121, 255, 0.07) 0%, transparent 50%),
+                  radial-gradient(ellipse at 80% 80%, rgba(124, 77, 255, 0.05) 0%, transparent 50%),
+                  radial-gradient(ellipse at 50% 50%, rgba(0, 229, 255, 0.03) 0%, transparent 60%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .container-fluid, .app-header { position: relative; z-index: 1; }
 
     /* ── ヘッダー ── */
     .app-header {
-      background: linear-gradient(135deg, var(--morris-blue) 0%, #2d5986 100%);
-      color: white;
-      padding: 1.5rem 2rem;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+      background: linear-gradient(180deg, rgba(5, 11, 24, 0.98) 0%, rgba(10, 22, 40, 0.95) 100%);
+      border-bottom: 1px solid var(--border-glow);
+      padding: 1.2rem 2rem;
+      backdrop-filter: blur(20px);
+      position: sticky;
+      top: 0;
+      z-index: 100;
     }
-    .app-header .brand { font-size: 0.85rem; opacity: 0.75; }
-    .app-header h1 { font-size: 1.6rem; font-weight: 700; margin: 0.2rem 0; }
-    .app-header .subtitle { font-size: 0.9rem; opacity: 0.85; }
-    .refresh-btn {
-      background: rgba(255,255,255,0.15);
-      border: 1px solid rgba(255,255,255,0.4);
-      color: white;
-      border-radius: 8px;
-      padding: 0.5rem 1.2rem;
-      font-size: 0.9rem;
-      cursor: pointer;
-      transition: all 0.2s;
+
+    .app-header::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--neon-cyan), var(--neon-blue), var(--neon-purple), transparent);
     }
-    .refresh-btn:hover { background: rgba(255,255,255,0.25); }
-    .status-badge {
-      background: rgba(255,255,255,0.15);
+
+    .brand-tag {
+      font-size: 0.72rem;
+      color: var(--neon-cyan);
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      opacity: 0.8;
+    }
+
+    .app-title {
+      font-size: 1.5rem;
+      font-weight: 700;
+      background: linear-gradient(90deg, var(--neon-cyan), var(--neon-blue), var(--neon-purple));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin: 0.2rem 0;
+      line-height: 1.2;
+    }
+
+    .app-subtitle {
+      font-size: 0.82rem;
+      color: var(--text-secondary);
+    }
+
+    .time-badge {
+      background: rgba(0, 229, 255, 0.08);
+      border: 1px solid rgba(0, 229, 255, 0.2);
       border-radius: 20px;
-      padding: 0.3rem 0.8rem;
-      font-size: 0.8rem;
+      padding: 0.2rem 0.8rem;
+      font-size: 0.75rem;
+      color: var(--neon-cyan);
+    }
+
+    /* ── 検索・更新 ── */
+    .search-box {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(0, 229, 255, 0.2);
+      border-radius: 25px;
+      padding: 0.5rem 1.2rem;
+      font-size: 0.88rem;
+      color: var(--text-primary);
+      width: 280px;
+      transition: all 0.3s;
+    }
+    .search-box::placeholder { color: var(--text-secondary); }
+    .search-box:focus {
+      outline: none;
+      border-color: var(--neon-cyan);
+      background: rgba(0, 229, 255, 0.05);
+      box-shadow: 0 0 20px rgba(0, 229, 255, 0.1);
+    }
+
+    .refresh-btn {
+      background: linear-gradient(135deg, rgba(41,121,255,0.15), rgba(0,229,255,0.1));
+      border: 1px solid rgba(0, 229, 255, 0.3);
+      color: var(--neon-cyan);
+      border-radius: 25px;
+      padding: 0.5rem 1.2rem;
+      font-size: 0.85rem;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+    .refresh-btn:hover {
+      background: linear-gradient(135deg, rgba(41,121,255,0.3), rgba(0,229,255,0.2));
+      box-shadow: 0 0 20px rgba(0, 229, 255, 0.2);
+      transform: translateY(-1px);
     }
 
     /* ── KPI カード ── */
     .kpi-card {
-      border: none;
-      border-radius: 14px;
-      padding: 1.2rem 1.4rem;
-      color: white;
+      background: var(--bg-card);
+      border-radius: 16px;
+      padding: 1.3rem 1.5rem;
+      border: 1px solid rgba(255,255,255,0.06);
+      backdrop-filter: blur(20px);
       position: relative;
       overflow: hidden;
-      box-shadow: 0 4px 15px rgba(0,0,0,0.12);
+      transition: transform 0.2s;
     }
-    .kpi-card .kpi-icon { font-size: 2.5rem; opacity: 0.25; position: absolute; right: 1rem; top: 0.8rem; }
-    .kpi-card .kpi-label { font-size: 0.8rem; opacity: 0.9; margin-bottom: 0.2rem; }
-    .kpi-card .kpi-value { font-size: 2.2rem; font-weight: 700; line-height: 1; }
-    .kpi-urgent { background: linear-gradient(135deg, #c62828, var(--urgent-color)); }
-    .kpi-high   { background: linear-gradient(135deg, #e65100, var(--high-color)); }
-    .kpi-mid    { background: linear-gradient(135deg, #0a58ca, var(--mid-color)); }
-    .kpi-total  { background: linear-gradient(135deg, #1a3a5c, #2d5986); }
+    .kpi-card:hover { transform: translateY(-3px); }
+
+    .kpi-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 2px;
+    }
+    .kpi-urgent::before { background: linear-gradient(90deg, var(--neon-red), #ff6b9d); }
+    .kpi-high::before   { background: linear-gradient(90deg, var(--neon-orange), #ffd54f); }
+    .kpi-mid::before    { background: linear-gradient(90deg, var(--neon-blue), var(--neon-cyan)); }
+    .kpi-total::before  { background: linear-gradient(90deg, var(--neon-purple), var(--neon-cyan)); }
+
+    .kpi-glow {
+      position: absolute;
+      width: 80px; height: 80px;
+      border-radius: 50%;
+      opacity: 0.08;
+      right: -10px; top: -10px;
+      filter: blur(20px);
+    }
+    .kpi-urgent .kpi-glow { background: var(--neon-red); }
+    .kpi-high .kpi-glow   { background: var(--neon-orange); }
+    .kpi-mid .kpi-glow    { background: var(--neon-blue); }
+    .kpi-total .kpi-glow  { background: var(--neon-purple); }
+
+    .kpi-label { font-size: 0.75rem; color: var(--text-secondary); letter-spacing: 0.05em; }
+    .kpi-value { font-size: 2.4rem; font-weight: 900; line-height: 1; margin: 0.2rem 0; }
+    .kpi-urgent .kpi-value { color: var(--neon-red); text-shadow: 0 0 20px rgba(255,23,68,0.5); }
+    .kpi-high .kpi-value   { color: var(--neon-orange); text-shadow: 0 0 20px rgba(255,109,0,0.5); }
+    .kpi-mid .kpi-value    { color: var(--neon-cyan); text-shadow: 0 0 20px rgba(0,229,255,0.4); }
+    .kpi-total .kpi-value  { color: var(--neon-purple); text-shadow: 0 0 20px rgba(124,77,255,0.4); }
+    .kpi-icon { font-size: 1.3rem; opacity: 0.4; }
+
+    /* ── グラスカード ── */
+    .glass-card {
+      background: var(--bg-card);
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 16px;
+      backdrop-filter: blur(20px);
+      padding: 1.3rem 1.5rem;
+      height: 100%;
+    }
 
     /* ── セクションタイトル ── */
     .section-title {
-      font-size: 1.05rem;
+      font-size: 0.82rem;
       font-weight: 700;
-      color: var(--morris-blue);
-      border-left: 4px solid var(--morris-accent);
-      padding-left: 0.8rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--neon-cyan);
       margin-bottom: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
     }
-
-    /* ── グラフカード ── */
-    .chart-card {
-      background: white;
-      border-radius: 14px;
-      padding: 1.2rem 1.4rem;
-      box-shadow: 0 2px 12px rgba(0,0,0,0.07);
-      height: 100%;
+    .section-title::before {
+      content: '';
+      width: 3px;
+      height: 14px;
+      background: linear-gradient(180deg, var(--neon-cyan), var(--neon-blue));
+      border-radius: 2px;
+      display: inline-block;
     }
 
     /* ── 推奨アクション ── */
     .rec-card {
-      border-radius: 12px;
-      padding: 1rem 1.2rem;
-      margin-bottom: 0.8rem;
-      border-left: 5px solid;
-      background: white;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+      background: rgba(255,255,255,0.02);
+      border: 1px solid rgba(255,255,255,0.06);
+      border-left: 3px solid;
+      border-radius: 10px;
+      padding: 0.9rem 1rem;
+      margin-bottom: 0.7rem;
+      transition: background 0.2s;
     }
-    .rec-card.danger  { border-color: var(--urgent-color); }
-    .rec-card.warning { border-color: var(--high-color); }
-    .rec-card.success { border-color: #198754; }
-    .rec-card.info    { border-color: #0dcaf0; }
-    .rec-card.secondary { border-color: #6c757d; }
-    .rec-level { font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; }
-    .rec-action { font-size: 0.9rem; margin: 0.3rem 0; }
-    .rec-items { font-size: 0.8rem; color: #666; }
+    .rec-card:hover { background: rgba(255,255,255,0.04); }
+    .rec-card.danger   { border-left-color: var(--neon-red); }
+    .rec-card.warning  { border-left-color: var(--neon-orange); }
+    .rec-card.success  { border-left-color: var(--neon-green); }
+    .rec-card.info     { border-left-color: var(--neon-cyan); }
+    .rec-card.secondary { border-left-color: var(--low); }
 
-    /* ── フィルタータブ ── */
-    .filter-tabs { gap: 0.5rem; flex-wrap: wrap; }
-    .filter-tab {
-      border: 2px solid #dee2e6;
-      background: white;
+    .rec-level { font-size: 0.7rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; }
+    .rec-card.danger   .rec-level { color: var(--neon-red); }
+    .rec-card.warning  .rec-level { color: var(--neon-orange); }
+    .rec-card.success  .rec-level { color: var(--neon-green); }
+    .rec-card.info     .rec-level { color: var(--neon-cyan); }
+    .rec-card.secondary .rec-level { color: var(--text-secondary); }
+
+    .rec-action { font-size: 0.84rem; color: var(--text-primary); margin: 0.3rem 0; }
+    .rec-items  { font-size: 0.76rem; color: var(--text-secondary); line-height: 1.6; }
+
+    /* ── キーワードクラウド ── */
+    .kw-cloud { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+    .kw-item {
+      background: rgba(0, 229, 255, 0.06);
+      border: 1px solid rgba(0, 229, 255, 0.2);
+      color: var(--neon-cyan);
       border-radius: 20px;
-      padding: 0.35rem 1rem;
-      font-size: 0.85rem;
+      padding: 0.25rem 0.75rem;
+      font-size: 0.78rem;
       cursor: pointer;
       transition: all 0.2s;
-      color: #495057;
     }
-    .filter-tab:hover { border-color: var(--morris-accent); color: var(--morris-accent); }
-    .filter-tab.active { background: var(--morris-blue); color: white; border-color: var(--morris-blue); }
-    .filter-tab .tab-count {
-      background: rgba(255,255,255,0.3);
-      border-radius: 10px;
-      padding: 0 0.4rem;
-      font-size: 0.75rem;
-      margin-left: 0.3rem;
+    .kw-item:hover {
+      background: rgba(0, 229, 255, 0.15);
+      box-shadow: 0 0 12px rgba(0, 229, 255, 0.2);
+      transform: translateY(-1px);
     }
-    .filter-tab:not(.active) .tab-count {
-      background: #e9ecef;
-      color: #666;
+    .kw-cnt { opacity: 0.6; font-size: 0.7rem; margin-left: 0.2rem; }
+
+    /* ── フィルタータブ ── */
+    .filter-tabs { display: flex; gap: 0.4rem; flex-wrap: wrap; }
+    .filter-tab {
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.1);
+      color: var(--text-secondary);
+      border-radius: 20px;
+      padding: 0.3rem 0.9rem;
+      font-size: 0.8rem;
+      cursor: pointer;
+      transition: all 0.2s;
     }
+    .filter-tab:hover { border-color: var(--neon-cyan); color: var(--neon-cyan); }
+    .filter-tab.active {
+      background: linear-gradient(135deg, rgba(41,121,255,0.25), rgba(0,229,255,0.15));
+      border-color: var(--neon-cyan);
+      color: var(--neon-cyan);
+      box-shadow: 0 0 15px rgba(0, 229, 255, 0.15);
+    }
+    .tab-cnt {
+      font-size: 0.7rem;
+      background: rgba(255,255,255,0.1);
+      border-radius: 8px;
+      padding: 0 0.35rem;
+      margin-left: 0.25rem;
+    }
+    .filter-tab.active .tab-cnt { background: rgba(0,229,255,0.2); }
 
     /* ── 情報カード ── */
     .info-card {
-      background: white;
+      background: rgba(10, 22, 40, 0.6);
+      border: 1px solid rgba(255,255,255,0.06);
+      border-left: 3px solid rgba(255,255,255,0.1);
       border-radius: 12px;
       padding: 1rem 1.2rem;
-      margin-bottom: 0.8rem;
-      border-left: 5px solid #dee2e6;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-      transition: transform 0.15s, box-shadow 0.15s;
+      margin-bottom: 0.7rem;
+      transition: all 0.25s;
       position: relative;
+      overflow: hidden;
     }
-    .info-card:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,0.1); }
-    .info-card.priority-緊急 { border-color: var(--urgent-color); background: #fff5f5; }
-    .info-card.priority-高   { border-color: var(--high-color); }
-    .info-card.priority-中   { border-color: var(--mid-color); }
-    .info-card.priority-低   { border-color: var(--low-color); }
+    .info-card::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      transition: opacity 0.25s;
+      pointer-events: none;
+    }
+    .info-card:hover {
+      border-color: rgba(0, 229, 255, 0.2);
+      transform: translateX(3px);
+      box-shadow: 0 4px 30px rgba(0,0,0,0.3), -3px 0 0 var(--neon-cyan);
+    }
+    .info-card:hover::before { opacity: 1; }
+
+    .info-card.priority-緊急 { border-left-color: var(--neon-red); background: rgba(255,23,68,0.04); }
+    .info-card.priority-高   { border-left-color: var(--neon-orange); }
+    .info-card.priority-中   { border-left-color: var(--neon-blue); }
+    .info-card.priority-低   { border-left-color: var(--low); }
 
     .priority-badge {
       display: inline-block;
-      font-size: 0.7rem;
+      font-size: 0.65rem;
       font-weight: 700;
+      letter-spacing: 0.08em;
       padding: 0.15rem 0.55rem;
       border-radius: 10px;
       margin-right: 0.4rem;
     }
-    .badge-緊急 { background: var(--urgent-color); color: white; }
-    .badge-高   { background: var(--high-color); color: white; }
-    .badge-中   { background: var(--mid-color); color: white; }
-    .badge-低   { background: #e9ecef; color: #666; }
+    .badge-緊急 { background: rgba(255,23,68,0.2); color: var(--neon-red); border: 1px solid rgba(255,23,68,0.4); }
+    .badge-高   { background: rgba(255,109,0,0.15); color: var(--neon-orange); border: 1px solid rgba(255,109,0,0.3); }
+    .badge-中   { background: rgba(41,121,255,0.15); color: #82b1ff; border: 1px solid rgba(41,121,255,0.3); }
+    .badge-低   { background: rgba(84,110,122,0.15); color: #90a4ae; border: 1px solid rgba(84,110,122,0.3); }
 
     .theme-tag {
       display: inline-block;
-      font-size: 0.72rem;
-      padding: 0.1rem 0.5rem;
-      border-radius: 8px;
-      background: var(--morris-light);
-      color: var(--morris-blue);
-      margin-right: 0.3rem;
+      font-size: 0.68rem;
+      padding: 0.12rem 0.5rem;
+      border-radius: 6px;
+      background: rgba(124,77,255,0.12);
+      color: #b39ddb;
+      border: 1px solid rgba(124,77,255,0.2);
     }
+
+    .info-title {
+      font-size: 0.92rem;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin: 0.4rem 0 0.3rem;
+      line-height: 1.5;
+    }
+    .info-summary { font-size: 0.82rem; color: var(--text-secondary); line-height: 1.65; }
+    .info-meta { font-size: 0.73rem; color: #4a6a8a; margin-top: 0.4rem; }
+
     .kw-tag {
       display: inline-block;
-      font-size: 0.68rem;
-      padding: 0.1rem 0.45rem;
-      border-radius: 6px;
-      background: #f0f4f8;
-      color: #555;
+      font-size: 0.65rem;
+      padding: 0.08rem 0.4rem;
+      border-radius: 5px;
+      background: rgba(0,229,255,0.05);
+      color: #4fc3f7;
+      border: 1px solid rgba(0,229,255,0.1);
       margin-right: 0.2rem;
       margin-top: 0.2rem;
     }
 
-    .info-title { font-size: 0.95rem; font-weight: 600; margin: 0.4rem 0; color: #1a1a2e; }
-    .info-summary { font-size: 0.84rem; color: #555; line-height: 1.6; }
-    .info-meta { font-size: 0.78rem; color: #888; margin-top: 0.5rem; }
-
+    /* ── 詳細ボタン ── */
     .detail-btn {
-      background: var(--morris-blue);
-      color: white;
-      border: none;
-      border-radius: 8px;
-      padding: 0.4rem 0.9rem;
-      font-size: 0.82rem;
-      cursor: pointer;
-      text-decoration: none;
       display: inline-flex;
       align-items: center;
-      gap: 0.3rem;
-      transition: background 0.2s;
+      gap: 0.4rem;
+      background: linear-gradient(135deg, rgba(41,121,255,0.2), rgba(0,229,255,0.12));
+      border: 1px solid rgba(0, 229, 255, 0.3);
+      color: var(--neon-cyan);
+      border-radius: 8px;
+      padding: 0.45rem 1rem;
+      font-size: 0.8rem;
+      font-weight: 500;
+      cursor: pointer;
+      text-decoration: none;
+      transition: all 0.25s;
+      white-space: nowrap;
       margin-top: 0.5rem;
     }
-    .detail-btn:hover { background: #2d5986; color: white; }
+    .detail-btn:hover {
+      background: linear-gradient(135deg, rgba(41,121,255,0.35), rgba(0,229,255,0.25));
+      border-color: var(--neon-cyan);
+      color: #fff;
+      box-shadow: 0 0 20px rgba(0, 229, 255, 0.25);
+      transform: translateY(-2px);
+    }
 
+    /* ── フォールバック通知 ── */
     .fallback-notice {
-      background: #fff3cd;
-      border: 1px solid #ffc107;
+      background: rgba(255,109,0,0.08);
+      border: 1px solid rgba(255,109,0,0.25);
       border-radius: 8px;
       padding: 0.6rem 1rem;
-      font-size: 0.82rem;
+      font-size: 0.8rem;
+      color: #ffb74d;
       margin-bottom: 1rem;
     }
 
-    /* ── キーワードクラウド ── */
-    .keyword-cloud { display: flex; flex-wrap: wrap; gap: 0.5rem; padding: 0.5rem 0; }
-    .kw-cloud-item {
-      background: var(--morris-light);
-      color: var(--morris-blue);
-      border-radius: 15px;
-      padding: 0.3rem 0.8rem;
-      font-size: 0.83rem;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.2s;
-    }
-    .kw-cloud-item:hover { background: var(--morris-blue); color: white; }
-    .kw-cloud-item .kw-cnt { font-size: 0.7rem; opacity: 0.75; margin-left: 0.2rem; }
-
-    /* ── スピナー ── */
+    /* ── ローディング ── */
     .loading-overlay {
       position: fixed; inset: 0;
-      background: rgba(255,255,255,0.85);
-      display: flex; align-items: center; justify-content: center;
-      z-index: 9999;
+      background: rgba(5, 11, 24, 0.92);
       display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+      backdrop-filter: blur(8px);
     }
+    .loading-spinner {
+      width: 50px; height: 50px;
+      border: 3px solid rgba(0,229,255,0.1);
+      border-top-color: var(--neon-cyan);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
 
-    /* ── 検索 ── */
-    .search-box {
-      border-radius: 20px;
-      border: 2px solid #dee2e6;
-      padding: 0.5rem 1.2rem;
-      font-size: 0.9rem;
-      width: 100%;
-      max-width: 360px;
-      transition: border-color 0.2s;
-    }
-    .search-box:focus { outline: none; border-color: var(--morris-accent); }
+    /* ── チャートカスタム ── */
+    canvas { max-height: 200px; }
 
-    /* ── タイムライン ── */
-    .timeline-bar {
-      height: 6px;
-      border-radius: 3px;
-      background: var(--morris-accent);
-      margin-bottom: 0.2rem;
-    }
+    /* ── スクロールバー ── */
+    ::-webkit-scrollbar { width: 5px; }
+    ::-webkit-scrollbar-track { background: var(--bg-primary); }
+    ::-webkit-scrollbar-thumb { background: rgba(0,229,255,0.2); border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: rgba(0,229,255,0.4); }
+
+    /* ── 結果なし ── */
+    #noResults { color: var(--text-secondary); padding: 2rem; }
 
     @media (max-width: 768px) {
-      .app-header h1 { font-size: 1.2rem; }
-      .kpi-card .kpi-value { font-size: 1.8rem; }
+      .app-title { font-size: 1.15rem; }
+      .kpi-value { font-size: 1.9rem; }
+      .search-box { width: 100%; }
     }
   </style>
 </head>
 <body>
 
 <!-- ローディング -->
-<div class="loading-overlay" id="loadingOverlay">
+<div class="loading-overlay" id="loadingOverlay" style="display:none;">
   <div class="text-center">
-    <div class="spinner-border text-primary mb-3" style="width:3rem;height:3rem;"></div>
-    <div class="fw-bold">情報を収集・更新中...</div>
-    <div class="text-muted small mt-1">厚生労働省ウェブサイトにアクセスしています</div>
+    <div class="loading-spinner mx-auto mb-3"></div>
+    <div style="color:var(--neon-cyan); font-size:0.9rem;">情報を収集・更新中...</div>
+    <div style="color:var(--text-secondary); font-size:0.78rem; margin-top:0.3rem;">厚生労働省ウェブサイトにアクセスしています</div>
   </div>
 </div>
 
@@ -279,18 +464,17 @@
   <div class="container-fluid">
     <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
       <div>
-        <div class="brand"><i class="bi bi-building me-1"></i>株式会社モーリス — 情報収集システム</div>
-        <h1><i class="bi bi-shield-check me-2"></i>厚生労働省 障害者福祉 情報トラッカー</h1>
-        <div class="subtitle">
-          過去 <strong>120時間</strong> 以内に更新された障害者福祉関連情報を収集・分析
-          <span class="status-badge ms-2">
-            <i class="bi bi-clock me-1"></i>
-            収集: {{ data.collected_at[:16].replace('T', ' ') }}
+        <div class="brand-tag"><i class="bi bi-building me-1"></i>株式会社モーリス — 情報収集システム</div>
+        <div class="app-title"><i class="bi bi-shield-check me-2"></i>厚生労働省 障害者福祉 情報トラッカー</div>
+        <div class="app-subtitle">
+          過去 <strong style="color:var(--neon-cyan);">120時間</strong> 以内に更新された障害者福祉関連情報を収集・分析
+          <span class="time-badge ms-2">
+            <i class="bi bi-clock me-1"></i>{{ data.collected_at[:16].replace('T', ' ') }}
           </span>
         </div>
       </div>
-      <div class="d-flex align-items-center gap-2 mt-1">
-        <input type="text" class="search-box" id="searchBox" placeholder="&#128269; キーワード検索..." onkeyup="filterItems()" />
+      <div class="d-flex align-items-center gap-2 mt-1 flex-wrap">
+        <input type="text" class="search-box" id="searchBox" placeholder="🔍 キーワード検索..." onkeyup="filterItems()" />
         <button class="refresh-btn" onclick="refreshData()">
           <i class="bi bi-arrow-clockwise me-1"></i>更新
         </button>
@@ -299,36 +483,56 @@
   </div>
 </div>
 
-<div class="container-fluid px-3 py-3" style="max-width: 1400px;">
+<div class="container-fluid px-3 py-3" style="max-width:1400px;">
 
-  <!-- KPI バー -->
+  <!-- KPI -->
   <div class="row g-3 mb-3">
     <div class="col-6 col-md-3">
       <div class="kpi-card kpi-urgent">
-        <div class="kpi-icon"><i class="bi bi-exclamation-triangle-fill"></i></div>
-        <div class="kpi-label">緊急案件</div>
-        <div class="kpi-value">{{ data.priority_counts.get('緊急', 0) }}</div>
+        <div class="kpi-glow"></div>
+        <div class="d-flex justify-content-between align-items-start">
+          <div>
+            <div class="kpi-label">緊急案件</div>
+            <div class="kpi-value">{{ data.priority_counts.get('緊急', 0) }}</div>
+          </div>
+          <div class="kpi-icon"><i class="bi bi-exclamation-triangle-fill"></i></div>
+        </div>
       </div>
     </div>
     <div class="col-6 col-md-3">
       <div class="kpi-card kpi-high">
-        <div class="kpi-icon"><i class="bi bi-arrow-up-circle-fill"></i></div>
-        <div class="kpi-label">優先度「高」</div>
-        <div class="kpi-value">{{ data.priority_counts.get('高', 0) }}</div>
+        <div class="kpi-glow"></div>
+        <div class="d-flex justify-content-between align-items-start">
+          <div>
+            <div class="kpi-label">優先度「高」</div>
+            <div class="kpi-value">{{ data.priority_counts.get('高', 0) }}</div>
+          </div>
+          <div class="kpi-icon"><i class="bi bi-arrow-up-circle-fill"></i></div>
+        </div>
       </div>
     </div>
     <div class="col-6 col-md-3">
       <div class="kpi-card kpi-mid">
-        <div class="kpi-icon"><i class="bi bi-info-circle-fill"></i></div>
-        <div class="kpi-label">優先度「中」</div>
-        <div class="kpi-value">{{ data.priority_counts.get('中', 0) }}</div>
+        <div class="kpi-glow"></div>
+        <div class="d-flex justify-content-between align-items-start">
+          <div>
+            <div class="kpi-label">優先度「中」</div>
+            <div class="kpi-value">{{ data.priority_counts.get('中', 0) }}</div>
+          </div>
+          <div class="kpi-icon"><i class="bi bi-info-circle-fill"></i></div>
+        </div>
       </div>
     </div>
     <div class="col-6 col-md-3">
       <div class="kpi-card kpi-total">
-        <div class="kpi-icon"><i class="bi bi-collection-fill"></i></div>
-        <div class="kpi-label">収集件数（合計）</div>
-        <div class="kpi-value">{{ data.total }}</div>
+        <div class="kpi-glow"></div>
+        <div class="d-flex justify-content-between align-items-start">
+          <div>
+            <div class="kpi-label">収集件数（合計）</div>
+            <div class="kpi-value">{{ data.total }}</div>
+          </div>
+          <div class="kpi-icon"><i class="bi bi-collection-fill"></i></div>
+        </div>
       </div>
     </div>
   </div>
@@ -336,39 +540,38 @@
   <!-- グラフ行 -->
   <div class="row g-3 mb-3">
     <div class="col-md-4">
-      <div class="chart-card">
-        <div class="section-title mb-2">テーマ別分布</div>
-        <canvas id="themeChart" height="200"></canvas>
+      <div class="glass-card">
+        <div class="section-title">テーマ別分布</div>
+        <canvas id="themeChart"></canvas>
       </div>
     </div>
     <div class="col-md-4">
-      <div class="chart-card">
-        <div class="section-title mb-2">優先度別分布</div>
-        <canvas id="priorityChart" height="200"></canvas>
+      <div class="glass-card">
+        <div class="section-title">優先度別分布</div>
+        <canvas id="priorityChart"></canvas>
       </div>
     </div>
     <div class="col-md-4">
-      <div class="chart-card">
-        <div class="section-title mb-2">更新日別トレンド</div>
-        <canvas id="dateChart" height="200"></canvas>
+      <div class="glass-card">
+        <div class="section-title">更新日別トレンド</div>
+        <canvas id="dateChart"></canvas>
       </div>
     </div>
   </div>
 
   <div class="row g-3">
-    <!-- 左カラム: 推奨アクション + キーワード -->
+    <!-- 左カラム -->
     <div class="col-lg-4">
-      <!-- 推奨アクション -->
-      <div class="chart-card mb-3">
+      <div class="glass-card mb-3">
         <div class="section-title">推奨アクション</div>
         {% for rec in data.recommendations %}
         <div class="rec-card {{ rec.color }}">
-          <div class="rec-level text-{{ rec.color }}">{{ rec.icon }} {{ rec.level }}</div>
+          <div class="rec-level">{{ rec.icon }} {{ rec.level }}</div>
           <div class="rec-action">{{ rec.action }}</div>
           {% if rec['items'] %}
           <div class="rec-items">
             {% for item in rec['items'] %}
-            <div>・{{ item[:55] }}{% if item|length > 55 %}…{% endif %}</div>
+            <div>· {{ item[:60] }}{% if item|length > 60 %}…{% endif %}</div>
             {% endfor %}
           </div>
           {% endif %}
@@ -376,12 +579,11 @@
         {% endfor %}
       </div>
 
-      <!-- キーワードクラウド -->
-      <div class="chart-card">
+      <div class="glass-card">
         <div class="section-title">頻出キーワード</div>
-        <div class="keyword-cloud">
+        <div class="kw-cloud">
           {% for kw, cnt in data.top_keywords %}
-          <div class="kw-cloud-item" onclick="searchKeyword('{{ kw }}')">
+          <div class="kw-item" onclick="searchKeyword('{{ kw }}')">
             {{ kw }}<span class="kw-cnt">({{ cnt }})</span>
           </div>
           {% endfor %}
@@ -391,26 +593,26 @@
 
     <!-- 右カラム: 情報一覧 -->
     <div class="col-lg-8">
-      <div class="chart-card">
+      <div class="glass-card">
         <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
           <div class="section-title mb-0">収集情報一覧</div>
-          <div class="d-flex filter-tabs" id="filterTabs">
+          <div class="filter-tabs" id="filterTabs">
             <button class="filter-tab active" onclick="setFilter('all', this)" data-filter="all">
-              すべて<span class="tab-count">{{ data.total }}</span>
+              すべて<span class="tab-cnt">{{ data.total }}</span>
             </button>
             {% if data.priority_counts.get('緊急', 0) > 0 %}
             <button class="filter-tab" onclick="setFilter('緊急', this)" data-filter="緊急">
-              🚨 緊急<span class="tab-count">{{ data.priority_counts.get('緊急', 0) }}</span>
+              🚨 緊急<span class="tab-cnt">{{ data.priority_counts.get('緊急', 0) }}</span>
             </button>
             {% endif %}
             <button class="filter-tab" onclick="setFilter('高', this)" data-filter="高">
-              高<span class="tab-count">{{ data.priority_counts.get('高', 0) }}</span>
+              高<span class="tab-cnt">{{ data.priority_counts.get('高', 0) }}</span>
             </button>
             <button class="filter-tab" onclick="setFilter('中', this)" data-filter="中">
-              中<span class="tab-count">{{ data.priority_counts.get('中', 0) }}</span>
+              中<span class="tab-cnt">{{ data.priority_counts.get('中', 0) }}</span>
             </button>
             <button class="filter-tab" onclick="setFilter('低', this)" data-filter="低">
-              低<span class="tab-count">{{ data.priority_counts.get('低', 0) }}</span>
+              低<span class="tab-cnt">{{ data.priority_counts.get('低', 0) }}</span>
             </button>
           </div>
         </div>
@@ -418,8 +620,7 @@
         {% if not data.is_partial_live %}
         <div class="fallback-notice">
           <i class="bi bi-info-circle me-1"></i>
-          厚生労働省サイトへのアクセスが制限されているため、参考データを表示しています。
-          「更新」ボタンで再取得できます。
+          厚生労働省サイトへのアクセスが制限されているため、参考データを表示しています。「更新」ボタンで再取得できます。
         </div>
         {% endif %}
 
@@ -440,7 +641,7 @@
                 <div class="info-summary">{{ item.summary }}</div>
                 <div class="info-meta">
                   <i class="bi bi-calendar3 me-1"></i>{{ item.date }}
-                  &nbsp;|&nbsp;
+                  &nbsp;·&nbsp;
                   <i class="bi bi-folder me-1"></i>{{ item.source }}
                 </div>
                 <div class="mt-1">
@@ -448,19 +649,17 @@
                   <span class="kw-tag">#{{ kw }}</span>
                   {% endfor %}
                 </div>
-              </div>
-              <div class="text-end flex-shrink-0">
-                <a href="{{ item.url }}" target="_blank" rel="noopener noreferrer" class="detail-btn">
+                <button class="detail-btn" onclick="openDetail('{{ item.url }}', '{{ item.title | replace("'", "\\'") }}')">
                   <i class="bi bi-box-arrow-up-right"></i>詳細を見る
-                </a>
+                </button>
               </div>
             </div>
           </div>
           {% endfor %}
         </div>
 
-        <div id="noResults" class="text-center text-muted py-4" style="display:none;">
-          <i class="bi bi-search" style="font-size:2rem;"></i>
+        <div id="noResults" class="text-center py-4" style="display:none; color:var(--text-secondary);">
+          <i class="bi bi-search" style="font-size:2rem; color:var(--neon-cyan); opacity:0.4;"></i>
           <div class="mt-2">該当する情報が見つかりませんでした</div>
         </div>
       </div>
@@ -469,64 +668,68 @@
 
 </div>
 
-<footer class="text-center text-muted py-3 mt-3" style="font-size:0.78rem;">
-  株式会社モーリス — AI情報収集システム | データソース: 厚生労働省ウェブサイト
+<footer class="text-center py-3 mt-3" style="font-size:0.72rem; color:#2a4a6a; border-top:1px solid rgba(255,255,255,0.04);">
+  株式会社モーリス — AI情報収集システム &nbsp;|&nbsp; データソース: 厚生労働省ウェブサイト
 </footer>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-  // ── データ ──
-  const themeData = {{ data.theme_counts | tojson }};
-  const priorityData = {{ data.priority_counts | tojson }};
-  const dateData = {{ data.date_counts | tojson }};
+  // ── チャートデフォルト設定 ──
+  Chart.defaults.color = '#7ba3c8';
+  Chart.defaults.borderColor = 'rgba(255,255,255,0.05)';
 
-  // ── テーマ円グラフ ──
+  const themeData    = {{ data.theme_counts | tojson }};
+  const priorityData = {{ data.priority_counts | tojson }};
+  const dateData     = {{ data.date_counts | tojson }};
+
+  const neonColors = ['#00e5ff','#2979ff','#7c4dff','#00e676','#ff6d00','#ff1744','#ffd740','#40c4ff','#b2ff59'];
+
+  // テーマ円グラフ
   new Chart(document.getElementById('themeChart'), {
     type: 'doughnut',
     data: {
       labels: Object.keys(themeData),
       datasets: [{
         data: Object.values(themeData),
-        backgroundColor: [
-          '#1a3a5c','#2196f3','#4caf50','#ff9800','#e91e63','#9c27b0','#00bcd4','#607d8b'
-        ],
-        borderWidth: 2,
-        borderColor: '#fff',
+        backgroundColor: neonColors.map(c => c + '33'),
+        borderColor: neonColors,
+        borderWidth: 1.5,
       }]
     },
     options: {
       responsive: true,
       plugins: {
-        legend: { position: 'bottom', labels: { font: { size: 11 }, padding: 8 } }
+        legend: { position: 'bottom', labels: { font: { size: 10 }, padding: 8, color: '#7ba3c8', boxWidth: 10 } }
       },
-      cutout: '60%',
+      cutout: '65%',
     }
   });
 
-  // ── 優先度棒グラフ ──
-  const priColors = { '緊急': '#dc3545', '高': '#fd7e14', '中': '#0d6efd', '低': '#6c757d' };
+  // 優先度棒グラフ
+  const priColors = { '緊急': '#ff1744', '高': '#ff6d00', '中': '#2979ff', '低': '#546e7a' };
   new Chart(document.getElementById('priorityChart'), {
     type: 'bar',
     data: {
       labels: Object.keys(priorityData),
       datasets: [{
-        label: '件数',
         data: Object.values(priorityData),
-        backgroundColor: Object.keys(priorityData).map(k => priColors[k] || '#999'),
-        borderRadius: 8,
+        backgroundColor: Object.keys(priorityData).map(k => (priColors[k] || '#999') + '33'),
+        borderColor: Object.keys(priorityData).map(k => priColors[k] || '#999'),
+        borderWidth: 1.5,
+        borderRadius: 6,
       }]
     },
     options: {
       responsive: true,
       plugins: { legend: { display: false } },
       scales: {
-        y: { beginAtZero: true, ticks: { stepSize: 1 } },
-        x: { grid: { display: false } }
+        y: { beginAtZero: true, ticks: { stepSize: 1, color: '#7ba3c8' }, grid: { color: 'rgba(255,255,255,0.04)' } },
+        x: { ticks: { color: '#7ba3c8' }, grid: { display: false } }
       }
     }
   });
 
-  // ── 日付折れ線グラフ ──
+  // 日付折れ線グラフ
   new Chart(document.getElementById('dateChart'), {
     type: 'line',
     data: {
@@ -534,11 +737,13 @@
       datasets: [{
         label: '更新件数',
         data: Object.values(dateData),
-        borderColor: '#2196f3',
-        backgroundColor: 'rgba(33,150,243,0.1)',
+        borderColor: '#00e5ff',
+        backgroundColor: 'rgba(0,229,255,0.06)',
         fill: true,
         tension: 0.4,
-        pointBackgroundColor: '#1a3a5c',
+        pointBackgroundColor: '#00e5ff',
+        pointBorderColor: '#050b18',
+        pointBorderWidth: 2,
         pointRadius: 5,
       }]
     },
@@ -546,11 +751,30 @@
       responsive: true,
       plugins: { legend: { display: false } },
       scales: {
-        y: { beginAtZero: true, ticks: { stepSize: 1 } },
-        x: { ticks: { font: { size: 10 }, maxRotation: 45 } }
+        y: { beginAtZero: true, ticks: { stepSize: 1, color: '#7ba3c8' }, grid: { color: 'rgba(255,255,255,0.04)' } },
+        x: { ticks: { font: { size: 10 }, maxRotation: 45, color: '#7ba3c8' }, grid: { display: false } }
       }
     }
   });
+
+  // ── 詳細を見るボタン（必ず新しいタブで開く）──
+  function openDetail(url, title) {
+    if (!url || url === 'undefined' || url === '') {
+      alert('このアイテムのURLが見つかりません。');
+      return;
+    }
+    var newTab = window.open(url, '_blank', 'noopener,noreferrer');
+    if (!newTab || newTab.closed) {
+      // ポップアップブロックされた場合のフォールバック
+      var a = document.createElement('a');
+      a.href = url;
+      a.target = '_blank';
+      a.rel = 'noopener noreferrer';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    }
+  }
 
   // ── フィルター ──
   let currentFilter = 'all';
@@ -581,15 +805,9 @@
     const cards = document.querySelectorAll('.info-card');
     let visible = 0;
     cards.forEach(card => {
-      const priority = card.dataset.priority;
-      const title = (card.dataset.title || '').toLowerCase();
-      const summary = (card.dataset.summary || '').toLowerCase();
-      const keywords = (card.dataset.keywords || '').toLowerCase();
-      const matchFilter = currentFilter === 'all' || priority === currentFilter;
-      const matchSearch = !currentSearch ||
-        title.includes(currentSearch) ||
-        summary.includes(currentSearch) ||
-        keywords.includes(currentSearch);
+      const matchFilter = currentFilter === 'all' || card.dataset.priority === currentFilter;
+      const text = ((card.dataset.title || '') + ' ' + (card.dataset.summary || '') + ' ' + (card.dataset.keywords || '')).toLowerCase();
+      const matchSearch = !currentSearch || text.includes(currentSearch);
       if (matchFilter && matchSearch) {
         card.style.display = '';
         visible++;
@@ -607,9 +825,7 @@
     try {
       const res = await fetch('/api/refresh');
       const json = await res.json();
-      if (json.status === 'ok') {
-        window.location.reload();
-      }
+      if (json.status === 'ok') window.location.reload();
     } catch (e) {
       alert('更新に失敗しました。ネットワーク接続を確認してください。');
     } finally {
