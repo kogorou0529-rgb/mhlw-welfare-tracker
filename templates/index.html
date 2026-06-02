@@ -221,6 +221,83 @@
       display: none;
     }
 
+    /* ── カテゴリータブ ── */
+    .category-tabs {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+      margin-bottom: 1rem;
+    }
+    .cat-tab {
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.08);
+      color: var(--text-secondary);
+      border-radius: 10px;
+      padding: 0.5rem 1rem;
+      font-size: 0.82rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+    .cat-tab:hover { border-color: rgba(255,255,255,0.2); color: var(--text-primary); }
+    .cat-tab.active {
+      color: white;
+      border-color: transparent;
+      box-shadow: 0 0 20px rgba(0,0,0,0.3);
+    }
+    .cat-tab[data-cat="all"].active       { background: linear-gradient(135deg,#2979ff,#00e5ff); }
+    .cat-tab[data-cat="障がい者福祉"].active { background: linear-gradient(135deg,#7c4dff,#2979ff); }
+    .cat-tab[data-cat="高齢者福祉"].active   { background: linear-gradient(135deg,#ff6d00,#ffd740); }
+    .cat-tab[data-cat="児童福祉"].active     { background: linear-gradient(135deg,#00e676,#00bcd4); }
+    .cat-cnt {
+      background: rgba(255,255,255,0.2);
+      border-radius: 10px;
+      padding: 0.05rem 0.45rem;
+      font-size: 0.72rem;
+    }
+    .cat-tab:not(.active) .cat-cnt { background: rgba(255,255,255,0.08); }
+
+    /* カテゴリーバッジ（カード内） */
+    .cat-badge {
+      display: inline-block;
+      font-size: 0.65rem;
+      font-weight: 700;
+      padding: 0.12rem 0.5rem;
+      border-radius: 6px;
+      margin-right: 0.3rem;
+    }
+    .cat-badge-障がい者福祉 { background: rgba(124,77,255,0.2); color: #b39ddb; border: 1px solid rgba(124,77,255,0.3); }
+    .cat-badge-高齢者福祉   { background: rgba(255,109,0,0.15); color: #ffb74d; border: 1px solid rgba(255,109,0,0.3); }
+    .cat-badge-児童福祉     { background: rgba(0,230,118,0.12); color: #69f0ae; border: 1px solid rgba(0,230,118,0.25); }
+    .cat-badge-その他       { background: rgba(120,120,120,0.15); color: #aaa; border: 1px solid rgba(120,120,120,0.2); }
+
+    /* ── 優先度セクションヘッダー ── */
+    .priority-section-header {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      padding: 0.5rem 0;
+      margin: 0.8rem 0 0.4rem;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+      font-size: 0.78rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+    .priority-section-header .psh-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+    }
+    .psh-高 { color: var(--neon-orange); }
+    .psh-高 .psh-dot { background: var(--neon-orange); box-shadow: 0 0 6px var(--neon-orange); }
+    .psh-中 { color: #82b1ff; }
+    .psh-中 .psh-dot { background: var(--neon-blue); box-shadow: 0 0 6px var(--neon-blue); }
+    .psh-低 { color: #90a4ae; }
+    .psh-低 .psh-dot { background: #546e7a; }
+
     /* ── 掲載日バッジ ── */
     .pub-date {
       display: inline-flex;
@@ -600,43 +677,46 @@
   <!-- KPI -->
   <div class="row g-3 mb-3">
     <div class="col-6 col-md-3">
-      <div class="kpi-card kpi-urgent">
+      <div class="kpi-card kpi-urgent" style="cursor:pointer;" onclick="setCategory('障がい者福祉')">
         <div class="kpi-glow"></div>
         <div class="d-flex justify-content-between align-items-start">
           <div>
-            <div class="kpi-label">緊急案件</div>
-            <div class="kpi-value">{{ data.priority_counts.get('緊急', 0) }}</div>
+            <div class="kpi-label">障がい者福祉</div>
+            <div class="kpi-value" style="color:#b39ddb; text-shadow:0 0 20px rgba(124,77,255,0.5);">{{ data.category_counts.get('障がい者福祉', 0) }}</div>
+            <div style="font-size:0.7rem; color:#7c4dff; margin-top:0.2rem;">
+              高:{{ data.priority_counts.get('高',0) }} 中:{{ data.priority_counts.get('中',0) }} 低:{{ data.priority_counts.get('低',0) }}
+            </div>
           </div>
-          <div class="kpi-icon"><i class="bi bi-exclamation-triangle-fill"></i></div>
+          <div class="kpi-icon"><i class="bi bi-person-wheelchair"></i></div>
         </div>
       </div>
     </div>
     <div class="col-6 col-md-3">
-      <div class="kpi-card kpi-high">
+      <div class="kpi-card kpi-high" style="cursor:pointer;" onclick="setCategory('高齢者福祉')">
         <div class="kpi-glow"></div>
         <div class="d-flex justify-content-between align-items-start">
           <div>
-            <div class="kpi-label">優先度「高」</div>
-            <div class="kpi-value">{{ data.priority_counts.get('高', 0) }}</div>
+            <div class="kpi-label">高齢者福祉</div>
+            <div class="kpi-value">{{ data.category_counts.get('高齢者福祉', 0) }}</div>
           </div>
-          <div class="kpi-icon"><i class="bi bi-arrow-up-circle-fill"></i></div>
+          <div class="kpi-icon"><i class="bi bi-person-cane"></i></div>
         </div>
       </div>
     </div>
     <div class="col-6 col-md-3">
-      <div class="kpi-card kpi-mid">
+      <div class="kpi-card kpi-mid" style="cursor:pointer;" onclick="setCategory('児童福祉')">
         <div class="kpi-glow"></div>
         <div class="d-flex justify-content-between align-items-start">
           <div>
-            <div class="kpi-label">優先度「中」</div>
-            <div class="kpi-value">{{ data.priority_counts.get('中', 0) }}</div>
+            <div class="kpi-label">児童福祉</div>
+            <div class="kpi-value" style="color:#69f0ae; text-shadow:0 0 20px rgba(0,230,118,0.4);">{{ data.category_counts.get('児童福祉', 0) }}</div>
           </div>
-          <div class="kpi-icon"><i class="bi bi-info-circle-fill"></i></div>
+          <div class="kpi-icon"><i class="bi bi-people-fill"></i></div>
         </div>
       </div>
     </div>
     <div class="col-6 col-md-3">
-      <div class="kpi-card kpi-total">
+      <div class="kpi-card kpi-total" style="cursor:pointer;" onclick="setCategory('all')">
         <div class="kpi-glow"></div>
         <div class="d-flex justify-content-between align-items-start">
           <div>
@@ -706,27 +786,35 @@
     <!-- 右カラム: 情報一覧 -->
     <div class="col-lg-8">
       <div class="glass-card">
-        <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
-          <div class="section-title mb-0">収集情報一覧</div>
-          <div class="filter-tabs" id="filterTabs">
-            <button class="filter-tab active" onclick="setFilter('all', this)" data-filter="all">
-              すべて<span class="tab-cnt">{{ data.total }}</span>
-            </button>
-            {% if data.priority_counts.get('緊急', 0) > 0 %}
-            <button class="filter-tab" onclick="setFilter('緊急', this)" data-filter="緊急">
-              🚨 緊急<span class="tab-cnt">{{ data.priority_counts.get('緊急', 0) }}</span>
-            </button>
-            {% endif %}
-            <button class="filter-tab" onclick="setFilter('高', this)" data-filter="高">
-              高<span class="tab-cnt">{{ data.priority_counts.get('高', 0) }}</span>
-            </button>
-            <button class="filter-tab" onclick="setFilter('中', this)" data-filter="中">
-              中<span class="tab-cnt">{{ data.priority_counts.get('中', 0) }}</span>
-            </button>
-            <button class="filter-tab" onclick="setFilter('低', this)" data-filter="低">
-              低<span class="tab-cnt">{{ data.priority_counts.get('低', 0) }}</span>
-            </button>
-          </div>
+        <div class="section-title mb-3">収集情報一覧</div>
+
+        <!-- カテゴリータブ -->
+        <div class="category-tabs" id="categoryTabs">
+          <button class="cat-tab active" data-cat="all" onclick="setCategory('all', this)">
+            <i class="bi bi-grid-fill"></i>すべて<span class="cat-cnt">{{ data.total }}</span>
+          </button>
+          <button class="cat-tab" data-cat="障がい者福祉" onclick="setCategory('障がい者福祉', this)">
+            <i class="bi bi-person-wheelchair"></i>障がい者福祉<span class="cat-cnt">{{ data.category_counts.get('障がい者福祉', 0) }}</span>
+          </button>
+          <button class="cat-tab" data-cat="高齢者福祉" onclick="setCategory('高齢者福祉', this)">
+            <i class="bi bi-person-cane"></i>高齢者福祉<span class="cat-cnt">{{ data.category_counts.get('高齢者福祉', 0) }}</span>
+          </button>
+          <button class="cat-tab" data-cat="児童福祉" onclick="setCategory('児童福祉', this)">
+            <i class="bi bi-people-fill"></i>児童福祉<span class="cat-cnt">{{ data.category_counts.get('児童福祉', 0) }}</span>
+          </button>
+          {% if data.category_counts.get('その他', 0) > 0 %}
+          <button class="cat-tab" data-cat="その他" onclick="setCategory('その他', this)">
+            <i class="bi bi-three-dots"></i>その他<span class="cat-cnt">{{ data.category_counts.get('その他', 0) }}</span>
+          </button>
+          {% endif %}
+        </div>
+
+        <!-- キーワード検索 -->
+        <div class="mb-3">
+          <input type="text" class="search-box" id="searchBox2"
+                 placeholder="🔍 記事を絞り込み..."
+                 onkeyup="applyArticleFilter()"
+                 style="width:100%; max-width:400px; border-radius:10px;" />
         </div>
 
         {% if not data.is_partial_live %}
@@ -736,41 +824,100 @@
         </div>
         {% endif %}
 
-        <div id="itemList">
-          {% for item in data['items'] %}
-          <div class="info-card priority-{{ item.priority }}"
-               data-priority="{{ item.priority }}"
-               data-title="{{ item.title }}"
-               data-summary="{{ item.summary }}"
-               data-keywords="{{ item.keywords | join(' ') }}">
-            <div class="d-flex align-items-start justify-content-between gap-2 flex-wrap">
-              <div style="flex:1; min-width:0;">
-                <div>
-                  <span class="priority-badge badge-{{ item.priority }}">{{ item.priority }}</span>
-                  <span class="theme-tag">{{ item.theme }}</span>
-                </div>
-                <div class="info-title">{{ item.title }}</div>
-                <div class="info-summary">{{ item.summary }}</div>
-                {% set d = item.date.split('-') %}
-                <div class="pub-date">
-                  <i class="bi bi-calendar-check"></i>
-                  掲載日：{{ d[0] }}年{{ d[1]|int }}月{{ d[2]|int }}日
-                </div>
-                <div class="info-meta mt-1">
-                  <i class="bi bi-folder me-1"></i>{{ item.source }}
-                </div>
-                <div class="mt-1">
-                  {% for kw in item.keywords[:5] %}
-                  <span class="kw-tag">#{{ kw }}</span>
-                  {% endfor %}
-                </div>
-                <button class="detail-btn" onclick="openDetail('{{ item.url }}', '{{ item.title | replace("'", "\\'") }}')">
-                  <i class="bi bi-box-arrow-up-right"></i>詳細を見る
-                </button>
-              </div>
-            </div>
+        <!-- 優先度「高」セクション -->
+        <div class="priority-section" id="section-高">
+          <div class="priority-section-header psh-高">
+            <span class="psh-dot"></span>優先度「高」
+            <span id="cnt-高" style="font-size:0.7rem; opacity:0.7;"></span>
           </div>
-          {% endfor %}
+          <div id="items-高">
+            {% for item in data['items'] if item.priority == '高' %}
+            <div class="info-card priority-高"
+                 data-priority="高"
+                 data-category="{{ item.category }}"
+                 data-title="{{ item.title }}"
+                 data-summary="{{ item.summary }}"
+                 data-keywords="{{ item.keywords | join(' ') }}">
+              {% set d = item.date.split('-') %}
+              <div>
+                <span class="cat-badge cat-badge-{{ item.category }}">{{ item.category }}</span>
+                <span class="theme-tag">{{ item.theme }}</span>
+              </div>
+              <div class="info-title">{{ item.title }}</div>
+              <div class="info-summary">{{ item.summary }}</div>
+              <div class="pub-date"><i class="bi bi-calendar-check"></i>掲載日：{{ d[0] }}年{{ d[1]|int }}月{{ d[2]|int }}日</div>
+              <div class="info-meta mt-1"><i class="bi bi-folder me-1"></i>{{ item.source }}</div>
+              <div class="mt-1">{% for kw in item.keywords[:4] %}<span class="kw-tag">#{{ kw }}</span>{% endfor %}</div>
+              <button class="detail-btn" onclick="openDetail('{{ item.url }}', '{{ item.title | replace("'", "\\'") }}')">
+                <i class="bi bi-box-arrow-up-right"></i>詳細を見る
+              </button>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+
+        <!-- 優先度「中」セクション -->
+        <div class="priority-section" id="section-中">
+          <div class="priority-section-header psh-中">
+            <span class="psh-dot"></span>優先度「中」
+            <span id="cnt-中" style="font-size:0.7rem; opacity:0.7;"></span>
+          </div>
+          <div id="items-中">
+            {% for item in data['items'] if item.priority == '中' %}
+            <div class="info-card priority-中"
+                 data-priority="中"
+                 data-category="{{ item.category }}"
+                 data-title="{{ item.title }}"
+                 data-summary="{{ item.summary }}"
+                 data-keywords="{{ item.keywords | join(' ') }}">
+              {% set d = item.date.split('-') %}
+              <div>
+                <span class="cat-badge cat-badge-{{ item.category }}">{{ item.category }}</span>
+                <span class="theme-tag">{{ item.theme }}</span>
+              </div>
+              <div class="info-title">{{ item.title }}</div>
+              <div class="info-summary">{{ item.summary }}</div>
+              <div class="pub-date"><i class="bi bi-calendar-check"></i>掲載日：{{ d[0] }}年{{ d[1]|int }}月{{ d[2]|int }}日</div>
+              <div class="info-meta mt-1"><i class="bi bi-folder me-1"></i>{{ item.source }}</div>
+              <div class="mt-1">{% for kw in item.keywords[:4] %}<span class="kw-tag">#{{ kw }}</span>{% endfor %}</div>
+              <button class="detail-btn" onclick="openDetail('{{ item.url }}', '{{ item.title | replace("'", "\\'") }}')">
+                <i class="bi bi-box-arrow-up-right"></i>詳細を見る
+              </button>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+
+        <!-- 優先度「低」セクション -->
+        <div class="priority-section" id="section-低">
+          <div class="priority-section-header psh-低">
+            <span class="psh-dot"></span>優先度「低」
+            <span id="cnt-低" style="font-size:0.7rem; opacity:0.7;"></span>
+          </div>
+          <div id="items-低">
+            {% for item in data['items'] if item.priority == '低' %}
+            <div class="info-card priority-低"
+                 data-priority="低"
+                 data-category="{{ item.category }}"
+                 data-title="{{ item.title }}"
+                 data-summary="{{ item.summary }}"
+                 data-keywords="{{ item.keywords | join(' ') }}">
+              {% set d = item.date.split('-') %}
+              <div>
+                <span class="cat-badge cat-badge-{{ item.category }}">{{ item.category }}</span>
+                <span class="theme-tag">{{ item.theme }}</span>
+              </div>
+              <div class="info-title">{{ item.title }}</div>
+              <div class="info-summary">{{ item.summary }}</div>
+              <div class="pub-date"><i class="bi bi-calendar-check"></i>掲載日：{{ d[0] }}年{{ d[1]|int }}月{{ d[2]|int }}日</div>
+              <div class="info-meta mt-1"><i class="bi bi-folder me-1"></i>{{ item.source }}</div>
+              <div class="mt-1">{% for kw in item.keywords[:4] %}<span class="kw-tag">#{{ kw }}</span>{% endfor %}</div>
+              <button class="detail-btn" onclick="openDetail('{{ item.url }}', '{{ item.title | replace("'", "\\'") }}')">
+                <i class="bi bi-box-arrow-up-right"></i>詳細を見る
+              </button>
+            </div>
+            {% endfor %}
+          </div>
         </div>
 
         <div id="noResults" class="text-center py-4" style="display:none; color:var(--text-secondary);">
@@ -891,47 +1038,70 @@
     }
   }
 
-  // ── フィルター ──
-  let currentFilter = 'all';
+  // ── カテゴリー＋フィルター ──
+  let currentCategory = 'all';
   let currentSearch = '';
 
-  function setFilter(priority, btn) {
-    currentFilter = priority;
-    document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
-    btn.classList.add('active');
-    applyFilter();
+  function setCategory(cat, btn) {
+    currentCategory = cat;
+    // タブのアクティブ切替（ヘッダーのKPIカードからも呼ばれる）
+    document.querySelectorAll('.cat-tab').forEach(t => t.classList.remove('active'));
+    if (btn) {
+      btn.classList.add('active');
+    } else {
+      const target = document.querySelector(`.cat-tab[data-cat="${cat}"]`);
+      if (target) target.classList.add('active');
+    }
+    applyArticleFilter();
   }
 
   function filterItems() {
     currentSearch = document.getElementById('searchBox').value.toLowerCase();
-    applyFilter();
+    applyArticleFilter();
   }
 
   function searchKeyword(kw) {
     document.getElementById('searchBox').value = kw;
+    const box2 = document.getElementById('searchBox2');
+    if (box2) box2.value = kw;
     currentSearch = kw.toLowerCase();
-    currentFilter = 'all';
-    document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
-    document.querySelector('[data-filter="all"]').classList.add('active');
-    applyFilter();
+    applyArticleFilter();
   }
 
-  function applyFilter() {
+  function applyArticleFilter() {
+    const searchVal = (document.getElementById('searchBox2') || {}).value || '';
+    currentSearch = searchVal.toLowerCase();
+
     const cards = document.querySelectorAll('.info-card');
-    let visible = 0;
+    let totalVisible = 0;
+    const sectionCounts = { '高': 0, '中': 0, '低': 0 };
+
     cards.forEach(card => {
-      const matchFilter = currentFilter === 'all' || card.dataset.priority === currentFilter;
-      const text = ((card.dataset.title || '') + ' ' + (card.dataset.summary || '') + ' ' + (card.dataset.keywords || '')).toLowerCase();
+      const matchCat = currentCategory === 'all' || card.dataset.category === currentCategory;
+      const text = ((card.dataset.title||'') + ' ' + (card.dataset.summary||'') + ' ' + (card.dataset.keywords||'')).toLowerCase();
       const matchSearch = !currentSearch || text.includes(currentSearch);
-      if (matchFilter && matchSearch) {
-        card.style.display = '';
-        visible++;
-      } else {
-        card.style.display = 'none';
+      const show = matchCat && matchSearch;
+      card.style.display = show ? '' : 'none';
+      if (show) {
+        totalVisible++;
+        const pri = card.dataset.priority;
+        if (sectionCounts[pri] !== undefined) sectionCounts[pri]++;
       }
     });
-    document.getElementById('noResults').style.display = visible === 0 ? '' : 'none';
+
+    // セクションヘッダーの件数更新・非表示制御
+    ['高', '中', '低'].forEach(pri => {
+      const section = document.getElementById(`section-${pri}`);
+      const cntEl   = document.getElementById(`cnt-${pri}`);
+      if (section) section.style.display = sectionCounts[pri] > 0 ? '' : 'none';
+      if (cntEl)   cntEl.textContent = sectionCounts[pri] > 0 ? `(${sectionCounts[pri]}件)` : '';
+    });
+
+    document.getElementById('noResults').style.display = totalVisible === 0 ? '' : 'none';
   }
+
+  // 初期実行（件数表示）
+  document.addEventListener('DOMContentLoaded', () => applyArticleFilter());
 
   // ── 期間選択 ──
   function setQuickPeriod(days, btn) {
