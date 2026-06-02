@@ -270,10 +270,27 @@ def scrape_mhlw_news(soup: BeautifulSoup, base_url: str, cutoff: datetime) -> li
     return items
 
 
-def collect_data(days: int = 30) -> dict:
-    """過去 days 日以内の障害者福祉情報を収集する"""
+def collect_data(days: int = 30, from_date_str: str = None, to_date_str: str = None) -> dict:
+    """指定期間の障害者福祉情報を収集する"""
     now = datetime.now()
-    cutoff = now - timedelta(days=days)
+
+    # to_date の決定
+    if to_date_str:
+        try:
+            to_dt = datetime.strptime(to_date_str, "%Y-%m-%d").replace(hour=23, minute=59, second=59)
+        except ValueError:
+            to_dt = now
+    else:
+        to_dt = now
+
+    # from_date の決定
+    if from_date_str:
+        try:
+            cutoff = datetime.strptime(from_date_str, "%Y-%m-%d")
+        except ValueError:
+            cutoff = to_dt - timedelta(days=days)
+    else:
+        cutoff = to_dt - timedelta(days=days)
     all_items = []
     seen_urls = set()
     live_fetch_failed = True
@@ -286,6 +303,13 @@ def collect_data(days: int = 30) -> dict:
         live_fetch_failed = False
         items = scrape_mhlw_news(soup, target["url"], cutoff)
         for item in items:
+            # to_dt より新しい記事も除外
+            try:
+                item_dt = datetime.strptime(item["date"], "%Y-%m-%d")
+                if item_dt > to_dt:
+                    continue
+            except Exception:
+                pass
             if item["url"] not in seen_urls:
                 seen_urls.add(item["url"])
                 item["source"] = target["name"]
@@ -295,10 +319,9 @@ def collect_data(days: int = 30) -> dict:
     if live_fetch_failed or len(all_items) < 3:
         logger.info("Using fallback data (live scrape returned insufficient results)")
         for item in FALLBACK_DATA:
-            # フォールバックデータも30日以内のものだけ
             try:
                 item_date = datetime.strptime(item["date"], "%Y-%m-%d")
-                if item_date < cutoff:
+                if item_date < cutoff or item_date > to_dt:
                     continue
             except Exception:
                 pass
@@ -330,9 +353,9 @@ def collect_data(days: int = 30) -> dict:
     recommendations = generate_recommendations(all_items, priority_counts, theme_counts)
 
     # 表示用の日付範囲テキスト
-    from_date_str = f"{cutoff.year}年{cutoff.month}月{cutoff.day}日"
-    to_date_str   = f"{now.year}年{now.month}月{now.day}日"
-    date_range_str = f"{from_date_str} 〜 {to_date_str}"
+    fd_str = f"{cutoff.year}年{cutoff.month}月{cutoff.day}日"
+    td_str = f"{to_dt.year}年{to_dt.month}月{to_dt.day}日"
+    date_range_str = f"{fd_str} 〜 {td_str}"
 
     return {
         "items": all_items,
@@ -341,8 +364,10 @@ def collect_data(days: int = 30) -> dict:
         "cutoff": cutoff.isoformat(),
         "days": days,
         "date_range": date_range_str,
-        "from_date": from_date_str,
-        "to_date": to_date_str,
+        "from_date": cutoff.strftime("%Y-%m-%d"),
+        "to_date": to_dt.strftime("%Y-%m-%d"),
+        "from_date_jp": fd_str,
+        "to_date_jp": td_str,
         "theme_counts": theme_counts,
         "priority_counts": priority_counts,
         "date_counts": dict(sorted(date_counts.items())),

@@ -145,6 +145,97 @@
       transform: translateY(-1px);
     }
 
+    /* ── 期間選択 ── */
+    .period-bar {
+      background: rgba(10, 22, 40, 0.7);
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+      padding: 0.6rem 2rem;
+      display: flex;
+      align-items: center;
+      gap: 0.8rem;
+      flex-wrap: wrap;
+    }
+    .period-label {
+      font-size: 0.75rem;
+      color: var(--text-secondary);
+      white-space: nowrap;
+    }
+    .period-quick-btn {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.1);
+      color: var(--text-secondary);
+      border-radius: 15px;
+      padding: 0.25rem 0.75rem;
+      font-size: 0.78rem;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .period-quick-btn:hover,
+    .period-quick-btn.active {
+      background: rgba(0,229,255,0.12);
+      border-color: var(--neon-cyan);
+      color: var(--neon-cyan);
+    }
+    .period-divider {
+      width: 1px;
+      height: 20px;
+      background: rgba(255,255,255,0.1);
+      margin: 0 0.3rem;
+    }
+    .date-input {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 8px;
+      padding: 0.25rem 0.6rem;
+      font-size: 0.78rem;
+      color: var(--text-primary);
+      cursor: pointer;
+      transition: border-color 0.2s;
+    }
+    .date-input:focus {
+      outline: none;
+      border-color: var(--neon-cyan);
+      background: rgba(0,229,255,0.05);
+    }
+    .date-input::-webkit-calendar-picker-indicator {
+      filter: invert(0.6) sepia(1) saturate(3) hue-rotate(170deg);
+      cursor: pointer;
+    }
+    .period-apply-btn {
+      background: linear-gradient(135deg, rgba(41,121,255,0.25), rgba(0,229,255,0.15));
+      border: 1px solid rgba(0,229,255,0.3);
+      color: var(--neon-cyan);
+      border-radius: 15px;
+      padding: 0.25rem 0.9rem;
+      font-size: 0.78rem;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .period-apply-btn:hover {
+      background: linear-gradient(135deg, rgba(41,121,255,0.4), rgba(0,229,255,0.3));
+      box-shadow: 0 0 12px rgba(0,229,255,0.2);
+    }
+    .period-error {
+      font-size: 0.72rem;
+      color: var(--neon-red);
+      display: none;
+    }
+
+    /* ── 掲載日バッジ ── */
+    .pub-date {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.3rem;
+      background: rgba(0,229,255,0.07);
+      border: 1px solid rgba(0,229,255,0.18);
+      border-radius: 8px;
+      padding: 0.18rem 0.6rem;
+      font-size: 0.75rem;
+      color: var(--neon-cyan);
+      font-weight: 500;
+      margin-top: 0.4rem;
+    }
+
     /* ── KPI カード ── */
     .kpi-card {
       background: var(--bg-card);
@@ -459,6 +550,27 @@
   </div>
 </div>
 
+<!-- 期間選択バー -->
+<div class="period-bar">
+  <span class="period-label"><i class="bi bi-calendar-range me-1"></i>検索期間：</span>
+  <button class="period-quick-btn" onclick="setQuickPeriod(7, this)">過去7日</button>
+  <button class="period-quick-btn" onclick="setQuickPeriod(14, this)">過去14日</button>
+  <button class="period-quick-btn active" onclick="setQuickPeriod(30, this)">過去30日</button>
+  <div class="period-divider"></div>
+  <span class="period-label">期間指定：</span>
+  <input type="date" class="date-input" id="fromDate"
+         value="{{ data.from_date }}"
+         max="{{ data.to_date }}" />
+  <span class="period-label">〜</span>
+  <input type="date" class="date-input" id="toDate"
+         value="{{ data.to_date }}"
+         max="{{ data.to_date }}" />
+  <button class="period-apply-btn" onclick="applyCustomPeriod()">
+    <i class="bi bi-search me-1"></i>検索
+  </button>
+  <span class="period-error" id="periodError">※期間は最大1ヶ月（31日以内）です</span>
+</div>
+
 <!-- ヘッダー -->
 <div class="app-header">
   <div class="container-fluid">
@@ -639,10 +751,12 @@
                 </div>
                 <div class="info-title">{{ item.title }}</div>
                 <div class="info-summary">{{ item.summary }}</div>
-                <div class="info-meta">
-                  <i class="bi bi-calendar3 me-1"></i>
-                  <strong style="color:var(--neon-cyan); opacity:0.85;">{{ item.date }}</strong>
-                  &nbsp;·&nbsp;
+                {% set d = item.date.split('-') %}
+                <div class="pub-date">
+                  <i class="bi bi-calendar-check"></i>
+                  掲載日：{{ d[0] }}年{{ d[1]|int }}月{{ d[2]|int }}日
+                </div>
+                <div class="info-meta mt-1">
                   <i class="bi bi-folder me-1"></i>{{ item.source }}
                 </div>
                 <div class="mt-1">
@@ -819,18 +933,91 @@
     document.getElementById('noResults').style.display = visible === 0 ? '' : 'none';
   }
 
-  // ── データ更新 ──
-  async function refreshData() {
+  // ── 期間選択 ──
+  function setQuickPeriod(days, btn) {
+    // クイックボタンのアクティブ切替
+    document.querySelectorAll('.period-quick-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+
+    // 日付入力を更新
+    const today = new Date();
+    const from  = new Date(today);
+    from.setDate(today.getDate() - days);
+
+    document.getElementById('toDate').value   = formatDate(today);
+    document.getElementById('fromDate').value = formatDate(from);
+    document.getElementById('periodError').style.display = 'none';
+
+    // すぐ検索
+    applyCustomPeriod(days);
+  }
+
+  function applyCustomPeriod(quickDays) {
+    const fromVal = document.getElementById('fromDate').value;
+    const toVal   = document.getElementById('toDate').value;
+    const errEl   = document.getElementById('periodError');
+
+    if (!fromVal || !toVal) {
+      errEl.style.display = 'inline';
+      errEl.textContent = '※開始日と終了日を入力してください';
+      return;
+    }
+
+    const fromDate = new Date(fromVal);
+    const toDate   = new Date(toVal);
+    const diffDays = Math.round((toDate - fromDate) / (1000 * 60 * 60 * 24));
+
+    if (diffDays < 0) {
+      errEl.style.display = 'inline';
+      errEl.textContent = '※開始日は終了日より前に設定してください';
+      return;
+    }
+    if (diffDays > 31) {
+      errEl.style.display = 'inline';
+      errEl.textContent = '※期間は最大1ヶ月（31日以内）です';
+      return;
+    }
+
+    errEl.style.display = 'none';
+
+    // クイックボタンのアクティブを外す（カスタム指定時）
+    if (!quickDays) {
+      document.querySelectorAll('.period-quick-btn').forEach(b => b.classList.remove('active'));
+    }
+
+    fetchWithPeriod(fromVal, toVal);
+  }
+
+  function formatDate(date) {
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const d = String(date.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+  }
+
+  async function fetchWithPeriod(fromDate, toDate) {
     const overlay = document.getElementById('loadingOverlay');
     overlay.style.display = 'flex';
     try {
-      const res = await fetch('/api/refresh');
+      const url = `/api/refresh?from_date=${fromDate}&to_date=${toDate}`;
+      const res  = await fetch(url);
       const json = await res.json();
       if (json.status === 'ok') window.location.reload();
     } catch (e) {
       alert('更新に失敗しました。ネットワーク接続を確認してください。');
     } finally {
       overlay.style.display = 'none';
+    }
+  }
+
+  // ── データ更新（ヘッダーの更新ボタン）──
+  async function refreshData() {
+    const fromVal = document.getElementById('fromDate').value;
+    const toVal   = document.getElementById('toDate').value;
+    if (fromVal && toVal) {
+      fetchWithPeriod(fromVal, toVal);
+    } else {
+      fetchWithPeriod('', '');
     }
   }
 </script>
