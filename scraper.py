@@ -288,88 +288,181 @@ def detect_priority(text: str) -> str:
 
 
 def parse_japanese_date(text: str) -> datetime | None:
+    """テキストから日本語日付を解析する"""
     patterns = [
         r"(\d{4})年(\d{1,2})月(\d{1,2})日",
         r"(\d{4})/(\d{1,2})/(\d{1,2})",
         r"(\d{4})-(\d{1,2})-(\d{1,2})",
         r"令和(\d+)年(\d{1,2})月(\d{1,2})日",
+        r"R(\d+)\.(\d{1,2})\.(\d{1,2})",  # R7.5.30 形式
     ]
     for pat in patterns:
         m = re.search(pat, text)
         if m:
             groups = m.groups()
-            if "令和" in pat:
-                year = int(groups[0]) + 2018
-                month, day = int(groups[1]), int(groups[2])
-            else:
-                year, month, day = int(groups[0]), int(groups[1]), int(groups[2])
             try:
-                return datetime(year, month, day)
+                if "令和" in pat or pat.startswith("R"):
+                    year = int(groups[0]) + 2018
+                else:
+                    year = int(groups[0])
+                month, day = int(groups[1]), int(groups[2])
+                if 2020 <= year <= 2030:  # 妥当な年範囲のみ
+                    return datetime(year, month, day)
             except ValueError:
                 pass
     return None
 
 
-def scrape_mhlw_news(soup: BeautifulSoup, base_url: str, cutoff: datetime, hint_category: str = None) -> list[dict]:
-    items = []
-    links = soup.find_all("a", href=True)
-    now = datetime.now()
+def _is_date_only_text(text: str) -> bool:
+    """テキストが日付だけ（または日付＋簡単な記号）かどうか"""
+    cleaned = re.sub(r"[\s年月日/\-\.\(\)【】「」（）NEW★☆◆◇•・]", "", text)
+    return len(cleaned) <= 15  # 日付文字列のみに近い短いテキスト
 
-    for link in links:
+
+def _find_date_for_link(link, cutoff: datetime, now: datetime) -> datetime | None:
+    """
+    リンク要素に関連する日付を厳密に検索する。
+    優先順位：
+      1. <dt>隣接構造 (dt > dd > a)
+      2. リンクの直接親要素のテキスト（日付のみの短いテキスト）
+      3. リンクのすぐ前の兄弟要素
+      4. タイトル冒頭の日付（「2026年5月30日付○○」形式）
+    """
+    title = link.get_text(strip=True)
+
+    # 1. dt/dd 隣接構造：<dt>2026年6月1日</dt><dd>...<a>...</a></dd>
+    parent = link.parent
+    for _ in range(4):
+        if parent is None:
+            break
+        if parent.name == 'dd':
+            dt_el = parent.find_previous_sibling('dt')
+            if dt_el:
+                dt = parse_japanese_date(dt_el.get_text(strip=True))
+                if dt and cutoff <= dt <= now:
+                    return dt
+            break
+        parent = parent.parent
+
+    # 2. 直接親または祖父要素に日付のみのテキストがある
+    parent = link.parent
+    for _ in range(2):
+        if parent is None:
+            break
+        own_text = parent.get_text(strip=True)
+        # 子要素のテキストを除いた親自身のテキスト
+        own_only = own_text.replace(title, "").strip()
+        if own_only and len(own_only) <= 30 and _is_date_only_text(own_only):
+            dt = parse_japanese_date(own_only)
+            if dt and cutoff <= dt <= now:
+                return dt
+        parent = parent.parent
+
+    # 3. 直前の兄弟要素（span, div, p, time など）に日付
+    prev = link.previous_sibling
+    for _ in range(3):
+        if prev is None:
+            break
+        if hasattr(prev, 'get_text'):
+            text = prev.get_text(strip=True)
+            if text and len(text) <= 30:
+                dt = parse_japanese_date(text)
+                if dt and cutoff <= dt <= now:
+                    return dt
+        prev = getattr(prev, 'previous_sibling', None)
+
+    # 4. タイトル冒頭に日付がある（「2026年5月30日付○○通知」形式）
+    title_date_pat = r"^((?:令和\d+年|\d{4}年)\d{1,2}月\d{1,2}日)"
+    m = re.match(title_date_pat, title)
+    if m:
+        dt = parse_japanese_date(m.group(1))
+        if dt and cutoff <= dt <= now:
+            return dt
+
+    return None
+
+
+def _build_item(link, href: str, dt: datetime, source_name: str, hint_category: str) -> dict:
+    title = link.get_text(strip=True)[:150]
+    keywords = contains_welfare_keyword(title)
+    return {
+        "title": title,
+        "url": href,
+        "date": dt.strftime("%Y-%m-%d"),
+        "source": source_name,
+        "summary": f"{title}に関する情報です。詳細はリンク先をご確認ください。",
+        "theme": detect_theme(title),
+        "priority": detect_priority(title),
+        "category": detect_category(title, hint_category),
+        "keywords": keywords,
+        "is_fallback": False,
+    }
+
+
+def scrape_mhlw_news(soup: BeautifulSoup, base_url: str, cutoff: datetime,
+                     hint_category: str = None, to_dt: datetime = None) -> list[dict]:
+    """
+    MHLWページから指定期間内の福祉関連リンクを収集する。
+    日付検出を厳密化して古い記事の混入を防ぐ。
+    """
+    items = []
+    now = to_dt or datetime.now()
+    source_name = base_url.split("/")[2] if "/" in base_url else base_url
+
+    # ── 方法1: <dt>日付</dt><dd>リンク</dd> 構造を優先解析 ──
+    seen_hrefs: set = set()
+    for dl in soup.find_all('dl'):
+        current_date = None
+        for child in dl.children:
+            if not hasattr(child, 'name'):
+                continue
+            if child.name == 'dt':
+                dt_text = child.get_text(strip=True)
+                parsed = parse_japanese_date(dt_text)
+                if parsed and cutoff <= parsed <= now:
+                    current_date = parsed
+                else:
+                    current_date = None  # 範囲外の日付はリセット
+            elif child.name == 'dd' and current_date:
+                for link in child.find_all('a', href=True):
+                    title = link.get_text(strip=True)
+                    if not title or len(title) < 5:
+                        continue
+                    if not contains_welfare_keyword(title):
+                        continue
+                    href = link['href']
+                    if href.startswith('/'):
+                        href = 'https://www.mhlw.go.jp' + href
+                    elif not href.startswith('http'):
+                        continue
+                    if href in seen_hrefs:
+                        continue
+                    seen_hrefs.add(href)
+                    items.append(_build_item(link, href, current_date, source_name, hint_category))
+
+    # ── 方法2: 残りのリンクを厳密な日付検出で補完 ──
+    for link in soup.find_all('a', href=True):
         title = link.get_text(strip=True)
         if not title or len(title) < 5:
             continue
-        keywords = contains_welfare_keyword(title)
-        if not keywords:
+        if not contains_welfare_keyword(title):
             continue
-        href = link["href"]
-        if href.startswith("/"):
-            href = "https://www.mhlw.go.jp" + href
-        elif not href.startswith("http"):
+        href = link['href']
+        if href.startswith('/'):
+            href = 'https://www.mhlw.go.jp' + href
+        elif not href.startswith('http'):
+            continue
+        if href in seen_hrefs:
             continue
 
-        # 親要素から日付テキストを探す（最大5階層）
-        date_text = ""
-        parent = link.parent
-        for _ in range(5):
-            if parent is None:
-                break
-            text = parent.get_text()
-            if re.search(r"(\d{4}年|\d{4}/\d{1,2}/|\d{4}-\d{1,2}-|令和\d+年)", text):
-                date_text = text
-                break
-            parent = parent.parent
-
-        dt = parse_japanese_date(date_text)
-
-        # 日付が検出できない場合はスキップ（古い情報混入を防ぐ）
+        # 厳密な日付検索
+        dt = _find_date_for_link(link, cutoff, now)
         if dt is None:
             continue
 
-        # カットオフより古い情報はスキップ
-        if dt < cutoff:
-            continue
+        seen_hrefs.add(href)
+        items.append(_build_item(link, href, dt, source_name, hint_category))
 
-        # 未来の日付もスキップ
-        if dt > now:
-            continue
-
-        theme = detect_theme(title)
-        priority = detect_priority(title)
-        category = detect_category(title, hint_category)
-
-        items.append({
-            "title": title[:150],
-            "url": href,
-            "date": dt.strftime("%Y-%m-%d"),
-            "source": base_url.split("/")[2],
-            "summary": f"{title}に関する情報です。詳細はリンク先をご確認ください。",
-            "theme": theme,
-            "priority": priority,
-            "category": category,
-            "keywords": keywords,
-            "is_fallback": False,
-        })
     return items
 
 
@@ -404,7 +497,9 @@ def collect_data(days: int = 30, from_date_str: str = None, to_date_str: str = N
         if not soup:
             continue
         live_fetch_failed = False
-        items = scrape_mhlw_news(soup, target["url"], cutoff, hint_category=target.get("hint_category"))
+        items = scrape_mhlw_news(soup, target["url"], cutoff,
+                                 hint_category=target.get("hint_category"),
+                                 to_dt=to_dt)
         for item in items:
             # to_dt より新しい記事も除外
             try:
